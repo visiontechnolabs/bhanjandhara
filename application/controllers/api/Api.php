@@ -72,7 +72,7 @@ class Api extends CI_Controller
 
 
 
-   public function getSubCategories()
+  public function getSubCategories()
 {
     // Read raw JSON input
     $raw_input = file_get_contents('php://input');
@@ -95,10 +95,21 @@ class Api extends CI_Controller
     $subcategories = $this->general_model->getAll('subcategories', $conditions);
 
     if (!empty($subcategories)) {
+        $result = [];
+        foreach ($subcategories as $subcat) {
+            // Count songs in songs table by sub_category_id
+            $song_count = $this->general_model->getCount('songs', ['sub_category_id' => $subcat->id]);
+            $result[] = [
+                'sub_category_id' => $subcat->id,
+                'sub_category_name' => $subcat->title, // assuming 'name' is the column in subcategories table
+                'total_song' => !empty($song_count) ? $song_count : 0
+            ];
+        }
+
         echo json_encode([
             'code' => 200,
             'status' => true,
-            'data' => $subcategories
+            'data' => $result
         ]);
     } else {
         echo json_encode([
@@ -108,6 +119,8 @@ class Api extends CI_Controller
         ]);
     }
 }
+
+
 
 
 
