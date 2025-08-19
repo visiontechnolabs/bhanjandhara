@@ -70,9 +70,41 @@ class Song extends CI_Controller
         ]);
     }
 }
-public function save_song(){
-    echo "<pre>";
-    print_r($_POST);
-    die;
+public function save_song()
+{
+    // $this->load->model('general_model');
+
+    // Prepare data from POST
+    $data = array(
+        'category_id'      => $this->input->post('main_category_id'),
+        'sub_category_id'  => $this->input->post('sub_category_id') ? $this->input->post('sub_category_id') : NULL,
+        'title'            => $this->input->post('song_name'),
+        'description'      => $this->input->post('song_lyrics', FALSE), // preserve HTML
+        'isActive'         => 1,
+        'created_on'       => date('Y-m-d')
+    );
+
+    // Insert into DB
+    $insert_id = $this->general_model->insert('songs', $data);
+
+    if ($insert_id) {
+        $response = array(
+            'status' => true,
+            'message' => 'Song saved successfully!',
+            'song_id' => $insert_id
+        );
+    } else {
+        $response = array(
+            'status' => false,
+            'message' => 'Failed to save song. Please try again.'
+        );
+    }
+
+    // Return JSON response
+    header('Content-Type: application/json');
+    echo json_encode($response);
+    exit;
 }
+
+
 }
