@@ -1,0 +1,520 @@
+    /* Custom Internal CSS with Bootstrap */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+        }
+        .header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            position: relative;
+            z-index: 1000;
+            border-bottom: 2px solid #000;
+            margin-bottom: 2rem;
+        }
+
+        .navbar {
+            padding: 15px 0;
+            min-height: 70px;
+        }
+
+        /* Logo */
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            margin-right: 0;
+        }
+
+        .logo::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 16px solid #333;
+            margin-right: 8px;
+        }
+
+        /* Navigation */
+        .navbar-nav {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .navbar-nav .nav-link {
+            color: #333 !important;
+            font-weight: 500;
+            font-size: 20px;
+            padding: 8px 25px !important;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #006400 !important;
+        }
+
+        /* Custom Buttons */
+        .btn-custom {
+            background: #006400;
+            color: white !important;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 18px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background: #45a049;
+            color: white !important;
+        }
+
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            margin-left: 30px;
+        }
+
+        /* Desktop Menu Toggle */
+        .desktop-menu-toggle {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            gap: 3px;
+            border: none;
+            background: none;
+            padding: 8px;
+            margin-left: 20px;
+        }
+
+        .desktop-menu-toggle span {
+            width: 18px;
+            height: 2px;
+            background: #333;
+            transition: 0.3s;
+        }
+
+        /* Desktop Menu Info Panel */
+        .desktop-menu-info {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 20px rgba(0,0,0,0.15);
+            padding: 80px 20px 20px;
+            transition: right 0.3s ease;
+            z-index: 1002;
+        }
+
+        .desktop-menu-info.active {
+            right: 0;
+        }
+
+        .desktop-menu-info h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .desktop-menu-info p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Overlays */
+        .nav-overlay, .desktop-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .nav-overlay.active, .desktop-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Promotional Banner */
+        .promo-banner {
+            background: #006400;
+            color: white;
+            padding: 10px 0;
+            overflow: hidden;
+        }
+
+        .promo-content {
+            display: flex;
+            animation: scrollText 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .promo-item {
+            padding: 0 50px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .promo-item::before {
+            content: '✦';
+            margin-right: 10px;
+        }
+
+        @keyframes scrollText {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Mobile Specific Styles */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 300px;
+                height: 100vh;
+                background: white;
+                box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+                transition: right 0.3s ease;
+                z-index: 1002;
+                padding-top: 80px;
+            }
+
+            .navbar-collapse.show {
+                right: 0;
+            }
+
+            .navbar-nav {
+                padding: 20px;
+                margin: 0 !important;
+            }
+
+            .navbar-nav .nav-item {
+                border-bottom: 1px solid #eee;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 15px 0 !important;
+            }
+
+            .mobile-buttons .btn-custom {
+                padding: 8px 14px;
+                font-size: 13px;
+                margin-left: 6px;
+            }
+
+            .navbar-toggler {
+                border: none;
+                padding: 4px 8px;
+            }
+
+            .navbar-toggler:focus {
+                box-shadow: none;
+            }
+
+            .navbar-toggler-icon {
+                background-image: none;
+                width: 22px;
+                height: 18px;
+                z-index: 1100;
+                position: relative;
+            }
+
+            .navbar-toggler-icon::before,
+            .navbar-toggler-icon::after,
+            .navbar-toggler-icon {
+                display: block;
+            }
+
+            .navbar-toggler-icon::before,
+            .navbar-toggler-icon::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                width: 22px;
+                height: 2px;
+                background: #333;
+                transition: 0.3s;
+            }
+
+            .navbar-toggler-icon::before {
+                top: -6px;
+            }
+
+            .navbar-toggler-icon::after {
+                bottom: -6px;
+            }
+
+            .navbar-toggler-icon {
+                background: #333;
+                height: 2px;
+                margin-top: 8px;
+            }
+
+            .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
+                background: transparent;
+            }
+
+            .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon::before {
+                transform: rotate(45deg);
+                top: 0;
+            }
+
+            .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon::after {
+                transform: rotate(-45deg);
+                bottom: 0;
+            }
+
+            .logo {
+                font-size: 18px;
+            }
+
+            .logo::before {
+                border-left-width: 10px;
+                border-right-width: 10px;
+                border-bottom-width: 14px;
+                margin-right: 6px;
+            }
+
+            .promo-item {
+                padding: 0 30px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .logo {
+                font-size: 18px;
+            }
+
+            .btn-custom {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            .promo-item {
+                padding: 0 20px;
+                font-size: 13px;
+            }
+        }
+        @media (max-width: 370px) {
+            .mobile-buttons{
+                width: 38% !important;
+            }
+            .mobile-buttons .btn-custom {
+                padding: 10px 6px;
+                font-size: 13px;
+                margin-left: 4px;
+            }
+        }
+        .banner-container {
+            position: relative;
+            height: 100%;
+            border-radius: 40px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .banner-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url('https://zokenoclothes.com/assets/img/ad-banner-bg.jpg') no-repeat center center;
+            background-size: cover;
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            align-items: end;
+            justify-content: center;
+            /* padding: 0 40px; */
+        }
+
+        .image-section{
+        }
+
+        .image-section img {
+            height: 100%;
+            width: 100%;
+            /* border-radius: 20px; */
+            object-fit: cover;
+        }
+
+        h2 {
+            color: #000;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-top: 40px;
+        }
+
+    .product-container {
+        background: #0064007d;
+        margin: 5rem 4rem;
+        border-radius: 2rem;
+        padding: 2rem 0;
+    }
+
+    .product-container h1{
+        color: #000;
+        font-weight: bold;
+        margin: 2rem 0;
+    }
+
+    .swiper-container {
+      width: 100%;
+      padding: 20px 0 50px;
+      overflow: hidden;
+    }
+
+    .swiper-wrapper {
+      padding: 10px 0;
+    }
+
+    .swiper-slide {
+      background-color: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: auto;
+      height: auto;
+      width: auto;
+    }
+
+    .product-image {
+      width: 100%;
+      max-height: 250px;
+      object-fit: contain;
+      margin-bottom: 15px;
+    }
+
+    .product-title {
+      /* font-weight: bold; */
+      font-size: 22px;
+      color: #000;
+    }
+
+    .price {
+      text-decoration: line-through;
+      color: #000;
+      font-size: 22px;
+    }
+
+    .discounted-price {
+      /* font-weight: bold; */
+      color: #000;
+      font-size: 22px;
+    }
+
+    .buy-now {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 8px;
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .swiper-button-next,
+    .swiper-button-prev {
+      color: #2e7d32;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .swiper-button-next {
+      right: 10px;
+    }
+
+    .swiper-button-prev {
+      left: 10px;
+    }
+    
+    .bg-darkgreen {
+    background-color: #006400;
+    }
+
+    .footer-link {
+        color: #ccc;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    .footer-link:hover {
+        color: #fff;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 767px) {
+        .product-container {
+            margin: 3rem 0.5rem; /* Further reduced for small screens */
+            border-radius: 1rem;
+            padding: 1rem;
+        }
+        
+        .swiper-slide {
+            width: 85%; /* Adjusted slide width */
+            margin: 0 auto; /* Center slides */
+        }
+        
+        .banner-container {
+            border-radius: 0; /* Remove rounded corners on mobile */
+        }
+        
+        .latest-product .card {
+            padding: 20px !important; /* Reduced padding */
+        }
+    }
+
+
+    .about{
+    }
+    .about img{
+        border-radius: 2rem;
+    }
+    .custom-container{
+        padding: 0 14rem;
+    }
+    @media (max-width: 1000px) {
+        .custom-container{
+            padding: 0 6rem;
+        }
+    }
+    @media (max-width: 800px) {
+        .custom-container{
+            padding: 0;
+        }
+    }
+    .about .about-title{
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        color: #006400;
+        letter-spacing: .2rem;
+    }
