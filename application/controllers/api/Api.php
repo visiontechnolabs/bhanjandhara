@@ -34,18 +34,33 @@ class Api extends CI_Controller
     $result = [];
 
     foreach ($categories as $cat) {
-        // Check if subcategories exist for this category
-        $subcat_exists = $this->db
+        // Count subcategories
+        $subcat_count = $this->db
             ->where('main_category_id', $cat['id'])
             ->where('isActive', 1)
-            ->count_all_results('subcategories') > 0;
+            ->count_all_results('subcategories');
 
-        $result[] = [
-            'id' => $cat['id'],
-            'name' => $cat['name'],
+        // Count songs directly under this category
+        $song_count = $this->db
+            ->where('category_id', $cat['id'])
+            ->count_all_results('songs');
+
+        $item = [
+            'id'    => $cat['id'],
+            'name'  => $cat['name'],
             'image' => base_url($cat['image']),
-            'has_subcategories' => $subcat_exists // true or false
+            'has_subcategories' => ($subcat_count > 0)
         ];
+
+        // Add counts depending on what is found
+        if ($subcat_count > 0) {
+            $item['total_subcategories'] = $subcat_count;
+        }
+        if ($song_count > 0) {
+            $item['total_songs'] = $song_count;
+        }
+
+        $result[] = $item;
     }
 
     echo json_encode([
@@ -54,6 +69,7 @@ class Api extends CI_Controller
         'data' => $result
     ]);
 }
+
 
 
    public function getSubCategories()
