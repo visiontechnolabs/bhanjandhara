@@ -20,10 +20,24 @@ if (!$this->session->userdata('admin')) {
 
 
     public function index(){
-     
+      $this->db->from('songs');
+        $song_count = $this->db->count_all_results();
+
+        // Count total categories
+        $this->db->from('categories');
+        $category_count = $this->db->count_all_results();
+
+        // Count total subcategories
+        $this->db->from('subcategories');
+        $sub_category_count = $this->db->count_all_results();
+
+        // Pass data to view
+        $data['song'] = $song_count;
+        $data['category'] = $category_count;
+        $data['sub_cagtegory'] = $sub_category_count;
 
           $this->load->view('admin/header');
-        $this->load->view('admin/dashboard_view');
+        $this->load->view('admin/dashboard_view',$data);
         $this->load->view('admin/footer');
     }
 

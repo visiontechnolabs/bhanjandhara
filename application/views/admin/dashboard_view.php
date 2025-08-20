@@ -13,8 +13,8 @@
 							<div class="card-body">
 								<div class="d-flex align-items-center">
 									<div>
-										<p class="mb-0 text-white">Total Product</p>
-										<h4 class="my-1 text-white"></h4>
+										<p class="mb-0 text-white">Total Song</p>
+										<h4 class="my-1 text-white"><?= $song?> </h4>
 										<!-- <p class="mb-0 font-13 text-white"><i class="bx bxs-up-arrow align-middle"></i>$34 from last week</p> -->
 									</div>
 									<div class="widgets-icons bg-white text-success ms-auto"><i class="bx bxs-wallet"></i>
@@ -28,8 +28,8 @@
 							<div class="card-body">
 								<div class="d-flex align-items-center">
 									<div>
-										<p class="mb-0 text-dark">Total Customers</p>
-										<h4 class="my-1 text-dark"></h4>
+										<p class="mb-0 text-dark">Total Category</p>
+										<h4 class="my-1 text-dark"><?= $category?> </h4>
 										<!-- <p class="mb-0 font-13 text-dark"><i class="bx bxs-up-arrow align-middle"></i>$24 from last week</p> -->
 									</div>
 									<div class="widgets-icons bg-white text-dark ms-auto"><i class="bx bxs-group"></i>
@@ -43,8 +43,8 @@
 							<div class="card-body">
 								<div class="d-flex align-items-center">
 									<div>
-										<p class="mb-0 text-white">Total order</p>
-										<h4 class="my-1 text-white">123</h4>
+										<p class="mb-0 text-white">Total Sub Category</p>
+										<h4 class="my-1 text-white"><?= $sub_cagtegory?> </h4>
 										<!-- <p class="mb-0 font-13 text-white"><i class="bx bxs-down-arrow align-middle"></i>$34 from last week</p> -->
 									</div>
 									<div class="widgets-icons bg-white text-danger ms-auto"><i class="bx bxs-binoculars"></i>

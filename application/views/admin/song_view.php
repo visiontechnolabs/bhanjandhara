@@ -43,3 +43,108 @@
         </nav>
     </div>
 </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function(){
+    loadSongs(1);
+
+    function loadSongs(page, search='') {
+        $.ajax({
+            url: "<?= base_url('admin/song/fetch_songs'); ?>",
+            method: "POST",
+            data: {page: page, search: search},
+            dataType: "json",
+            success: function(data){
+                var html = '';
+                if(data.songs.length > 0) {
+                    $.each(data.songs, function(index, song){
+                        var indexNum = data.offset + index + 1;
+                        html += `
+                            <tr>
+                                <td>${indexNum}</td>
+                                <td>${song.category_name ? song.category_name : '-'}</td>
+                                <td>${song.title}</td>
+                                <td>${song.subcategory_name ? song.subcategory_name : '-'}</td>
+                                <td>
+                                    ${song.isActive == 1 
+                                        ? `<div class="d-flex align-items-center text-success">
+                                                <i class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>
+                                                <span>Published</span>
+                                           </div>`
+                                        : `<div class="d-flex align-items-center text-danger">
+                                                <i class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>
+                                                <span>Unpublished</span>
+                                           </div>`}
+                                </td>
+                                <td>
+                                    <div class="d-flex order-actions align-items-center">
+                                        <a href="${site_url}admin/song/edit/${song.id}" class="me-2">
+                                            <i class="bx bxs-edit"></i>
+                                        </a>
+                                        ${song.isActive == 1
+                                            ? `<a href="javascript:void(0);" class="toggle-status-btn text-danger ms-2" 
+                                                data-id="${song.id}" data-status="0" title="Unpublish">
+                                                <i class="bx bxs-hide fs-5"></i>
+                                               </a>`
+                                            : `<a href="javascript:void(0);" class="toggle-status-btn text-success ms-2" 
+                                                data-id="${song.id}" data-status="1" title="Publish">
+                                                <i class="bx bxs-show fs-5"></i>
+                                               </a>`}
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    html = '<tr><td colspan="6" class="text-center">No songs found.</td></tr>';
+                }
+                $('#songTable').html(html);
+                $('#pagination').html(data.pagination);
+            }
+        });
+    }
+
+    // Handle pagination click
+    $(document).on('click', '.page-link', function(){
+        var page = $(this).data('page');
+        var search = $('#search').val();
+        loadSongs(page, search);
+    });
+
+    // Search input typing
+    $('#search').keyup(function(){
+        var search = $(this).val();
+        loadSongs(1, search); // restart at page 1
+    });
+});
+ $(document).on("click", ".toggle-status-btn", function () {
+        const button = $(this);
+        const postId = button.data("id");
+        const newStatus = button.data("status");
+
+        $.ajax({
+            url: site_url + "admin/song/toggle_status",
+            type: "POST",
+            data: { id: postId, status: newStatus },
+            dataType: "json",
+            success: function (res) {
+                if (res.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: res.message,
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                    setTimeout(function () {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    Swal.fire("Error", res.message, "error");
+                }
+            },
+            error: function () {
+                Swal.fire("Error", "Something went wrong!", "error");
+            },
+        });
+    });
+</script>
