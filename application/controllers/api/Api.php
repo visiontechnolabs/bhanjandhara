@@ -121,6 +121,99 @@ class Api extends CI_Controller
 }
 
 
+public function getSong() {
+    // Read raw JSON input
+    $raw_input = file_get_contents('php://input');
+    $input_data = json_decode($raw_input, true);  // decode JSON to array
+
+    $category_id = isset($input_data['categoryId']) ? $input_data['categoryId'] : null;
+
+    // Validate input
+    if (empty($category_id)) {
+        echo json_encode([
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'Category ID is required',
+            'data'    => []
+        ]);
+        return;
+    }
+
+    // Fetch songs by category_id
+    $conditions = ['category_id' => $category_id];
+    $songs = $this->general_model->getAll('songs', $conditions);
+
+    if (!empty($songs)) {
+        $result = [];
+        foreach ($songs as $song) {
+            $result[] = [
+                'title' => $song->title 
+            ];
+        }
+
+        echo json_encode([
+            'code'   => 200,
+            'status' => true,
+            'data'   => $result
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode([
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'No songs found for this category',
+            'data'    => []
+        ]);
+    }
+
+   
+}
+ public function get_sub_song(){
+        
+    $raw_input = file_get_contents('php://input');
+    $input_data = json_decode($raw_input, true);  
+
+    $category_id = isset($input_data['categoryId']) ? $input_data['categoryId'] : null;
+
+    // Validate input
+    if (empty($category_id)) {
+        echo json_encode([
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'Category ID is required',
+            'data'    => []
+        ]);
+        return;
+    }
+
+    // Fetch songs by category_id
+    $conditions = ['sub_category_id' => $category_id];
+    $songs = $this->general_model->getAll('songs', $conditions);
+
+    if (!empty($songs)) {
+        $result = [];
+        foreach ($songs as $song) {
+            $result[] = [
+                'title' => $song->title // wrap each song name as { "title": "..." }
+            ];
+        }
+
+        echo json_encode([
+            'code'   => 200,
+            'status' => true,
+            'data'   => $result
+        ], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode([
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'No songs found for this category',
+            'data'    => []
+        ]);
+    }
+
+    }
+
+
 
 
 
