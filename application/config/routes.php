@@ -65,6 +65,8 @@ $route['api/category']['GET'] = 'api/api/get_category';
 $route['api/sub_category']['POST'] = 'api/api/getSubCategories';
 $route['api/get_song']['POST'] = 'api/api/getSong';
 $route['api/get_sub_song']['POST'] = 'api/api/get_sub_song';
+$route['api/song_details']['POST'] = 'api/api/song_details';
+
 
 
 

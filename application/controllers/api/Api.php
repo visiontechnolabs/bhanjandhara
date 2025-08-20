@@ -213,7 +213,49 @@ public function getSong() {
 
     }
 
+public function song_details()
+{
+    // Read raw JSON input
+    $raw_input = file_get_contents('php://input');
+    $input_data = json_decode($raw_input, true);  
 
+    $song_id = isset($input_data['Id']) ? $input_data['Id'] : null;
+
+    // Validate input
+    if (empty($song_id)) {
+        echo json_encode([
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'Song ID is required',
+            'data'    => []
+        ]);
+        return;
+    }
+
+    // Fetch song details
+    $song = $this->general_model->getOne('songs', ['id' => $song_id]);
+
+    if (!empty($song)) {
+        $result = [
+            'title'       => $song->title,
+            'description' => $song->description
+        ];
+
+        echo json_encode([
+            'code'    => 200,
+            'status'  => true,
+            'message' => 'Song details fetched successfully',
+            'data'    => $result
+        ]);
+    } else {
+        echo json_encode([
+            'code'    => 404,
+            'status'  => false,
+            'message' => 'Song not found',
+            'data'    => []
+        ]);
+    }
+}
 
 
 
