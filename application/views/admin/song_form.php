@@ -26,26 +26,22 @@
                     <div class="row">
                         <div class="col">
                             <form id="SongForm" method="post" enctype="multipart/form-data" novalidate>
-                                
-                                <!-- Main Category Select -->
+
+                                <!-- Category Select (recursive) -->
                                 <div class="mb-3">
-                                    <label for="mainCategory" class="form-label">Main Category</label>
-                                    <select name="main_category_id" class="form-select" id="mainCategory" required>
-                                        <option value="">-- Select Main Category --</option>
-                                        <?php foreach ($main_categories as $cat): ?>
+                                    <label for="category" class="form-label">Category</label>
+                                    <select name="category_id[]" class="form-select" id="mainCategory" required>
+                                        <option value="">-- Select Category --</option>
+                                        <?php foreach ($categories as $cat): ?>
                                             <option value="<?= $cat->id; ?>"><?= $cat->name; ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <div class="invalid-feedback">Please select a main category.</div>
+                                    <div class="invalid-feedback">Please select a category.</div>
                                 </div>
 
-                                <!-- Sub Category Select (dynamic) -->
-                                <div class="mb-3">
-                                    <label for="subCategory" class="form-label">Sub Category</label>
-                                    <select name="sub_category_id" class="form-select" id="subCategory" required>
-                                        <option value="">-- Select Sub Category --</option>
-                                    </select>
-                                    <div class="invalid-feedback">Please select a sub category.</div>
+                                <!-- Dynamic subcategory containers -->
+                                <div id="subCategoryContainer" class="mb-3">
+
                                 </div>
 
                                 <!-- Song Name -->
@@ -76,51 +72,60 @@
     </div>
 </div>
 
- <script src="<?= base_url('assets/js/jquery.min.js') ?>"></script>
+<script src="<?= base_url('assets/js/jquery.min.js') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 <script>
-    CKEDITOR.replace('songLyrics');
+CKEDITOR.replace('songLyrics');
 
-    // Load subcategories dynamically
-   document.getElementById('mainCategory').addEventListener('change', function() {
-    var mainCategoryId = this.value;
-    var subCategorySelect = document.getElementById('subCategory');
-    subCategorySelect.innerHTML = '<option value="">Loading...</option>';
-
-    if (mainCategoryId) {
-        fetch('<?= base_url("admin/song/get_subcategories"); ?>', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ category_id: mainCategoryId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
-            if (data.status && data.data) {
-                data.data.forEach(sub => {
-                    let option = document.createElement('option');
-                    option.value = sub.id;
-                    option.textContent = sub.title; // assuming DB column is "title"
-                    subCategorySelect.appendChild(option);
+// Load child categories dynamically
+function loadSubCategories(parentId, container) {
+    // alert('h');
+    $.ajax({
+        url: "<?= base_url('admin/song/get_subcategories'); ?>",
+        type: "POST",
+        data: JSON.stringify({ parent_id: parentId }),
+        contentType: "application/json",
+        dataType: "json",
+        success: function(res) {
+            if (res.status && res.data.length > 0) {
+                let select = $('<select class="form-select mt-2" name="category_id[]" required></select>');
+                select.append('<option value="">-- Select Sub Category --</option>');
+                res.data.forEach(cat => {
+                    select.append('<option value="'+cat.id+'">'+cat.name+'</option>');
                 });
-            } else {
-                subCategorySelect.innerHTML = '<option value="">No subcategories found</option>';
+
+                // Remove any deeper levels when changing
+                select.on('change', function() {
+                    $(this).nextAll('select').remove(); // remove lower dropdowns
+                    let newParent = $(this).val();
+                    if (newParent) {
+                        loadSubCategories(newParent, container);
+                    }
+                });
+
+                container.append(select);
             }
-        })
-        .catch(err => {
-            subCategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
-            console.error(err);
-        });
-    } else {
-        subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
+        }
+    });
+}
+
+// When main category changes, load its first level subcategories
+$('#mainCategory').on('change', function() {
+    // alert('h');
+    let mainCatId = $(this).val();
+    let container = $('#subCategoryContainer');
+    container.empty(); // clear old dropdowns
+    if (mainCatId) {
+        loadSubCategories(mainCatId, container);
     }
 });
+
+
 $(document).ready(function () {
     $("#SongForm").on("submit", function (e) {
-        e.preventDefault(); 
+        e.preventDefault();
 
-        // Get CKEditor content into textarea
         for (instance in CKEDITOR.instances) {
             CKEDITOR.instances[instance].updateElement();
         }
@@ -129,11 +134,11 @@ $(document).ready(function () {
         var formData = new FormData(form);
 
         $.ajax({
-            url: "<?= base_url('admin/song/save_song'); ?>", // your save method
+            url: "<?= base_url('admin/song/save_song'); ?>",
             type: "POST",
             data: formData,
-            processData: false, // important for FormData
-            contentType: false, // important for FormData
+            processData: false,
+            contentType: false,
             dataType: "json",
             beforeSend: function () {
                 Swal.fire({
@@ -156,20 +161,12 @@ $(document).ready(function () {
                         window.location.href = "<?= base_url('admin/song'); ?>";
                     });
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: res.message || 'Something went wrong!'
-                    });
+                    Swal.fire({ icon: 'error', title: 'Error', text: res.message || 'Something went wrong!' });
                 }
             },
             error: function (xhr, status, error) {
                 Swal.close();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Request Failed',
-                    text: 'Could not save song. Please try again!'
-                });
+                Swal.fire({ icon: 'error', title: 'Request Failed', text: 'Could not save song. Please try again!' });
                 console.error(error);
             }
         });

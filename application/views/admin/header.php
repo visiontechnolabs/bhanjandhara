@@ -72,16 +72,7 @@
         </ul>
     </li>
     
-    <li>
-        <a href="javascript:;" class="has-arrow">
-            <div class="parent-icon"><i class='bx bx-grid-alt'></i></div>
-            <div class="menu-title">Sub Category</div>
-        </a>
-        <ul>
-            <li><a href="<?= base_url('sub_category');?>"><i class='bx bx-radio-circle'></i>All Sub Category</a></li>
-            <li><a href="<?= base_url('add_sub_category');?>"><i class='bx bx-plus-circle'></i>Add new</a></li>
-        </ul>
-    </li>
+
    <li>
     <a href="javascript:;" class="has-arrow">
         <div class="parent-icon"><i class='bx bxs-music'></i></div> <!-- main icon -->

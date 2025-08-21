@@ -2,14 +2,14 @@
     <div class="page-content">
         <!--breadcrumb-->
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-            <div class="breadcrumb-title pe-3">Table</div>
+            <div class="breadcrumb-title pe-3">Songs</div>
             <div class="ps-3">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0 p-0">
                         <li class="breadcrumb-item">
                             <a href="<?= base_url('dashboard'); ?>"><i class="bx bx-home-alt"></i></a>
                         </li>
-                        <li class="breadcrumb-item active" aria-current="page">Songs</li>
+                        <li class="breadcrumb-item active" aria-current="page">Songs List</li>
                     </ol>
                 </nav>
             </div>
@@ -28,7 +28,6 @@
                                 <th>Index#</th>
                                 <th>Category</th>
                                 <th>Title</th>
-                                <th>Sub-category</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -43,8 +42,11 @@
         </nav>
     </div>
 </div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+const site_url = "<?= site_url(); ?>";
+
 $(document).ready(function(){
     loadSongs(1);
 
@@ -55,30 +57,29 @@ $(document).ready(function(){
             data: {page: page, search: search},
             dataType: "json",
             success: function(data){
-                var html = '';
+                let html = '';
                 if(data.songs.length > 0) {
                     $.each(data.songs, function(index, song){
-                        var indexNum = data.offset + index + 1;
+                        let indexNum = data.offset + index + 1;
                         html += `
                             <tr>
                                 <td>${indexNum}</td>
                                 <td>${song.category_name ? song.category_name : '-'}</td>
                                 <td>${song.title}</td>
-                                <td>${song.subcategory_name ? song.subcategory_name : '-'}</td>
                                 <td>
                                     ${song.isActive == 1 
                                         ? `<div class="d-flex align-items-center text-success">
-                                                <i class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>
-                                                <span>Published</span>
+                                               <i class="bx bx-radio-circle-marked align-middle font-18 me-1"></i>
+                                               <span>Published</span>
                                            </div>`
                                         : `<div class="d-flex align-items-center text-danger">
-                                                <i class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>
-                                                <span>Unpublished</span>
+                                               <i class="bx bx-radio-circle-marked align-middle font-18 me-1"></i>
+                                               <span>Unpublished</span>
                                            </div>`}
                                 </td>
                                 <td>
                                     <div class="d-flex order-actions align-items-center">
-                                        <a href="${site_url}admin/song/edit/${song.id}" class="me-2">
+                                        <a href="${site_url}admin/song/edit/${song.id}" class="me-2" title="Edit">
                                             <i class="bx bxs-edit"></i>
                                         </a>
                                         ${song.isActive == 1
@@ -96,7 +97,7 @@ $(document).ready(function(){
                         `;
                     });
                 } else {
-                    html = '<tr><td colspan="6" class="text-center">No songs found.</td></tr>';
+                    html = '<tr><td colspan="5" class="text-center">No songs found.</td></tr>';
                 }
                 $('#songTable').html(html);
                 $('#pagination').html(data.pagination);
@@ -106,18 +107,19 @@ $(document).ready(function(){
 
     // Handle pagination click
     $(document).on('click', '.page-link', function(){
-        var page = $(this).data('page');
-        var search = $('#search').val();
+        let page = $(this).data('page');
+        let search = $('#search').val();
         loadSongs(page, search);
     });
 
     // Search input typing
     $('#search').keyup(function(){
-        var search = $(this).val();
+        let search = $(this).val();
         loadSongs(1, search); // restart at page 1
     });
-});
- $(document).on("click", ".toggle-status-btn", function () {
+
+    // Toggle status
+    $(document).on("click", ".toggle-status-btn", function () {
         const button = $(this);
         const postId = button.data("id");
         const newStatus = button.data("status");
@@ -147,4 +149,5 @@ $(document).ready(function(){
             },
         });
     });
+});
 </script>

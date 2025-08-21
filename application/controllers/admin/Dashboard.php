@@ -27,14 +27,11 @@ if (!$this->session->userdata('admin')) {
         $this->db->from('categories');
         $category_count = $this->db->count_all_results();
 
-        // Count total subcategories
-        $this->db->from('subcategories');
-        $sub_category_count = $this->db->count_all_results();
-
+        
         // Pass data to view
         $data['song'] = $song_count;
         $data['category'] = $category_count;
-        $data['sub_cagtegory'] = $sub_category_count;
+        // $data['sub_cagtegory'] = $sub_category_count;
 
           $this->load->view('admin/header');
         $this->load->view('admin/dashboard_view',$data);

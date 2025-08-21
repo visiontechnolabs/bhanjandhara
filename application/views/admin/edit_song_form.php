@@ -6,8 +6,7 @@
             <div class="ps-3">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0 p-0">
-                        <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard'); ?>"><i
-                                    class="bx bx-home-alt"></i></a></li>
+                        <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard'); ?>"><i class="bx bx-home-alt"></i></a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit Song</li>
                     </ol>
                 </nav>
@@ -48,11 +47,18 @@
                                     <div class="invalid-feedback">Please select a main category.</div>
                                 </div>
 
-                                <!-- Sub Category Select (dynamic) -->
+                                <!-- Sub Category Select (preloaded if available) -->
                                 <div class="mb-3">
                                     <label for="subCategory" class="form-label">Sub Category</label>
-                                    <select name="sub_category_id" class="form-select" id="subCategory" required>
+                                    <select name="sub_category_id" class="form-select" id="subCategory">
                                         <option value="">-- Select Sub Category --</option>
+                                        <?php if (!empty($sub_categories)): ?>
+                                            <?php foreach ($sub_categories as $sub): ?>
+                                                <option value="<?= $sub->id; ?>" <?= ($song->sub_category_id == $sub->id) ? 'selected' : ''; ?>>
+                                                    <?= htmlspecialchars($sub->title, ENT_QUOTES); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </select>
                                     <div class="invalid-feedback">Please select a sub category.</div>
                                 </div>
@@ -60,13 +66,9 @@
                                 <!-- Song Description (CKEditor) -->
                                 <div class="mb-3">
                                     <label for="songDescription" class="form-label">Description</label>
-                                    <textarea name="description" id="songDescription" class="form-control" rows="6">
-            <?= htmlspecialchars($song->description, ENT_QUOTES) ?>
-        </textarea>
+                                    <textarea name="description" id="songDescription" class="form-control" rows="6"><?= htmlspecialchars($song->description, ENT_QUOTES) ?></textarea>
                                     <div class="invalid-feedback">Please enter the song description.</div>
                                 </div>
-
-
 
                                 <!-- Submit Button -->
                                 <div class="mb-3">
@@ -86,78 +88,84 @@
 <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 
 <script>
-    CKEDITOR.replace('songDescription', {
-        height: 250
-    });
+    var site_url = "<?= site_url(); ?>";
+    CKEDITOR.replace('songDescription', { height: 250 });
+
+    // Fetch subcategories dynamically on main category change
     document.getElementById('mainCategory').addEventListener('change', function () {
         var mainCategoryId = this.value;
         var subCategorySelect = document.getElementById('subCategory');
         subCategorySelect.innerHTML = '<option value="">Loading...</option>';
 
         if (mainCategoryId) {
-            fetch('<?= base_url("admin/song/get_subcategories"); ?>', {
+            fetch(site_url + "admin/song/get_subcategories", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category_id: mainCategoryId })
             })
-                .then(response => response.json())
-                .then(data => {
-                    subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
-                    if (data.status && data.data) {
-                        data.data.forEach(sub => {
-                            let option = document.createElement('option');
-                            option.value = sub.id;
-                            option.textContent = sub.title; // assuming DB column is "title"
-                            subCategorySelect.appendChild(option);
-                        });
-                    } else {
-                        subCategorySelect.innerHTML = '<option value="">No subcategories found</option>';
-                    }
-                })
-                .catch(err => {
-                    subCategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
-                    console.error(err);
-                });
+            .then(response => response.json())
+            .then(data => {
+                subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
+                if (data.status && data.data) {
+                    data.data.forEach(sub => {
+                        let option = document.createElement('option');
+                        option.value = sub.id;
+                        option.textContent = sub.title;
+                        subCategorySelect.appendChild(option);
+                    });
+                } else {
+                    subCategorySelect.innerHTML = '<option value="">No subcategories found</option>';
+                }
+            })
+            .catch(err => {
+                subCategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
+                console.error(err);
+            });
         } else {
             subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
         }
     });
 
-        $("#editSongForm").on("submit", function (e) {
-            e.preventDefault();
-            // alert('hh');
-            // return;
-            var formData = new FormData(this);
+    // Submit form with AJAX
+    $("#editSongForm").on("submit", function (e) {
+        e.preventDefault();
 
-            $.ajax({
-                url: site_url + "admin/song/update_song",
-                type: "POST",
-                data: formData,
-                contentType: false,
-                processData: false,
-                dataType: "json",
-                success: function (response) {
-                    if (response.status) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Updated",
-                            text: response.message,
-                            timer: 2000,
-                            showConfirmButton: false,
-                        }).then(() => {
-                            window.location.href = site_url + "songs";
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: response.message,
-                        });
-                    }
-                },
-                error: function () {
-                    Swal.fire("Error", "Something went wrong!", "error");
-                },
-            });
+        // Ensure CKEditor data is pushed into textarea
+        for (var instance in CKEDITOR.instances) {
+            CKEDITOR.instances[instance].updateElement();
+        }
+
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: site_url + "admin/song/update_song",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            dataType: "json",
+            success: function (response) {
+                if (response.status) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Updated",
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false,
+                    }).then(() => {
+                        window.location.href = site_url + "songs";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: response.message,
+                    });
+                }
+            },
+            error: function () {
+                Swal.fire("Error", "Something went wrong!", "error");
+            },
         });
+    });
 </script>

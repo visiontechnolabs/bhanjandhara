@@ -43,8 +43,8 @@
 							<div class="card-body">
 								<div class="d-flex align-items-center">
 									<div>
-										<p class="mb-0 text-white">Total Sub Category</p>
-										<h4 class="my-1 text-white"><?= $sub_cagtegory?> </h4>
+										<p class="mb-0 text-white">Total Customer</p>
+										<h4 class="my-1 text-white">123 </h4>
 										<!-- <p class="mb-0 font-13 text-white"><i class="bx bxs-down-arrow align-middle"></i>$34 from last week</p> -->
 									</div>
 									<div class="widgets-icons bg-white text-danger ms-auto"><i class="bx bxs-binoculars"></i>

@@ -26,107 +26,163 @@ class Api extends CI_Controller
 
    public function get_category()
 {
+    // Fetch top-level categories
     $categories = $this->db
         ->where('isActive', 1)
+        ->where('parent_id', NULL)
         ->get('categories')
         ->result_array();
 
     $result = [];
 
     foreach ($categories as $cat) {
-        // Count subcategories
-        $subcat_count = $this->db
-            ->where('main_category_id', $cat['id'])
+        // Get subcategories
+        $subcategories = $this->db
             ->where('isActive', 1)
-            ->count_all_results('subcategories');
+            ->where('parent_id', $cat['id'])
+            ->get('categories')
+            ->result_array();
 
-        // Count songs directly under this category
-        $song_count = $this->db
-            ->where('category_id', $cat['id'])
-            ->count_all_results('songs');
+        if (!empty($subcategories)) {
+            // If there are subcategories
+            $subcat_count = count($subcategories);
+            $subcat_ids   = array_column($subcategories, 'id');
 
-        $item = [
-            'id'    => $cat['id'],
-            'name'  => $cat['name'],
-            'image' => base_url($cat['image']),
-            'has_subcategories' => ($subcat_count > 0)
-        ];
+            $song_count = 0;
+            if (!empty($subcat_ids)) {
+                $song_count = $this->db
+                    ->where_in('category_id', $subcat_ids)
+                    ->count_all_results('songs');
+            }
 
-        // Add counts depending on what is found
-        if ($subcat_count > 0) {
-            $item['total_subcategories'] = $subcat_count;
+            $result[] = [
+                'id'                  => $cat['id'],
+                'name'                => $cat['name'],
+                'image'               => base_url($cat['image']),
+                'has_subcategories'   => true,
+                'total_subcategories' => $subcat_count,
+                'total_songs'         => $song_count
+            ];
+
+        } else {
+            // If no subcategories
+            $song_count = $this->db
+                ->where('category_id', $cat['id'])
+                ->count_all_results('songs');
+
+            $result[] = [
+                'id'                => $cat['id'],
+                'name'              => $cat['name'],
+                'image'             => base_url($cat['image']),
+                'has_subcategories' => false,
+                'total_songs'       => $song_count
+            ];
         }
-        if ($song_count > 0) {
-            $item['total_songs'] = $song_count;
-        }
-
-        $result[] = $item;
     }
 
     echo json_encode([
         'status' => true,
-        'code' => 200,
-        'data' => $result
+        'code'   => 200,
+        'data'   => $result
     ]);
 }
 
 
 
-  public function getSubCategories()
-{
-    // Read raw JSON input
-    $raw_input = file_get_contents('php://input');
-    $input_data = json_decode($raw_input, true);  // decode JSON to array
 
-    $category_id = isset($input_data['categoryId']) ? $input_data['categoryId'] : null;
+public function getSubCategories()
+{
+    // Get category ID from GET params
+    $parent_id = $this->input->get('id');
 
     // Validate input
-    if (empty($category_id)) {
+    if (empty($parent_id)) {
         echo json_encode([
-            'code' => 400,
-            'status' => false,
-            'message' => 'Category ID is required'
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'Category ID is required',
+            'data'    => []
         ]);
         return;
     }
 
-    // Fetch subcategories
-    $conditions = ['main_category_id' => $category_id];
-    $subcategories = $this->general_model->getAll('subcategories', $conditions);
+    // Fetch direct subcategories of this parent
+    $subcategories = $this->db
+        ->where('isActive', 1)
+        ->where('parent_id', $parent_id)
+        ->get('categories')
+        ->result_array();
 
-    if (!empty($subcategories)) {
-        $result = [];
-        foreach ($subcategories as $subcat) {
-            // Count songs in songs table by sub_category_id
-            $song_count = $this->general_model->getCount('songs', ['sub_category_id' => $subcat->id]);
+    if (empty($subcategories)) {
+        echo json_encode([
+            'code'    => 400,
+            'status'  => false,
+            'message' => 'No subcategories found',
+            'data'    => []
+        ]);
+        return;
+    }
+
+    $result = [];
+
+    foreach ($subcategories as $subcat) {
+        // Fetch children of this subcategory
+        $child_subcats = $this->db
+            ->where('isActive', 1)
+            ->where('parent_id', $subcat['id'])
+            ->get('categories')
+            ->result_array();
+
+        if (!empty($child_subcats)) {
+            // If this subcategory has further children
+            $child_count = count($child_subcats);
+            $child_ids   = array_column($child_subcats, 'id');
+
+            // Count songs inside all child subcategories
+            $song_count = 0;
+            if (!empty($child_ids)) {
+                $song_count = $this->db
+                    ->where_in('category_id', $child_ids)
+                    ->count_all_results('songs');
+            }
+
             $result[] = [
-                'sub_category_id' => $subcat->id,
-                'sub_category_name' => $subcat->title, // assuming 'name' is the column in subcategories table
-                'total_song' => !empty($song_count) ? $song_count : 0
+                'id'                  => $subcat['id'],
+                'name'                => $subcat['name'],
+                'image'               => !empty($subcat['image']) ? base_url($subcat['image']) : '',
+                'has_subcategories'   => true,
+                'total_subcategories' => $child_count,
+                'total_songs'         => $song_count
+            ];
+        } else {
+            // No child categories → count songs directly in this subcategory
+            $song_count = $this->db
+                ->where('category_id', $subcat['id'])
+                ->count_all_results('songs');
+
+            $result[] = [
+                'id'                => $subcat['id'],
+                'name'              => $subcat['name'],
+                'image'             => !empty($subcat['image']) ? base_url($subcat['image']) : '',
+                'has_subcategories' => false,
+                'total_songs'       => $song_count
             ];
         }
-
-        echo json_encode([
-            'code' => 200,
-            'status' => true,
-            'data' => $result
-        ]);
-    } else {
-        echo json_encode([
-            'code' => 400,
-            'status' => false,
-            'message' => 'No subcategories found'
-        ]);
     }
+
+    echo json_encode([
+        'code'   => 200,
+        'status' => true,
+        'data'   => $result
+    ]);
 }
 
 
-public function getSong() {
-    // Read raw JSON input
-    $raw_input = file_get_contents('php://input');
-    $input_data = json_decode($raw_input, true);  // decode JSON to array
 
-    $category_id = isset($input_data['categoryId']) ? $input_data['categoryId'] : null;
+public function getSong()
+{
+    // Get category ID from GET params
+    $category_id = $this->input->get('id');
 
     // Validate input
     if (empty($category_id)) {
@@ -147,7 +203,10 @@ public function getSong() {
         $result = [];
         foreach ($songs as $song) {
             $result[] = [
-                'title' => $song->title 
+                'id'          => $song->id,
+                'title'       => $song->title,
+                'description' => $song->description,
+                'created_on'  => $song->created_on
             ];
         }
 
@@ -158,68 +217,18 @@ public function getSong() {
         ], JSON_UNESCAPED_UNICODE);
     } else {
         echo json_encode([
-            'code'    => 400,
+            'code'    => 404,
             'status'  => false,
             'message' => 'No songs found for this category',
             'data'    => []
         ]);
     }
-
-   
 }
- public function get_sub_song(){
-        
-    $raw_input = file_get_contents('php://input');
-    $input_data = json_decode($raw_input, true);  
-
-    $category_id = isset($input_data['categoryId']) ? $input_data['categoryId'] : null;
-
-    // Validate input
-    if (empty($category_id)) {
-        echo json_encode([
-            'code'    => 400,
-            'status'  => false,
-            'message' => 'Category ID is required',
-            'data'    => []
-        ]);
-        return;
-    }
-
-    // Fetch songs by category_id
-    $conditions = ['sub_category_id' => $category_id];
-    $songs = $this->general_model->getAll('songs', $conditions);
-
-    if (!empty($songs)) {
-        $result = [];
-        foreach ($songs as $song) {
-            $result[] = [
-                'title' => $song->title // wrap each song name as { "title": "..." }
-            ];
-        }
-
-        echo json_encode([
-            'code'   => 200,
-            'status' => true,
-            'data'   => $result
-        ], JSON_UNESCAPED_UNICODE);
-    } else {
-        echo json_encode([
-            'code'    => 400,
-            'status'  => false,
-            'message' => 'No songs found for this category',
-            'data'    => []
-        ]);
-    }
-
-    }
 
 public function song_details()
 {
-    // Read raw JSON input
-    $raw_input = file_get_contents('php://input');
-    $input_data = json_decode($raw_input, true);  
-
-    $song_id = isset($input_data['Id']) ? $input_data['Id'] : null;
+    // Get song ID from GET params
+    $song_id = $this->input->get('id');
 
     // Validate input
     if (empty($song_id)) {
@@ -237,8 +246,11 @@ public function song_details()
 
     if (!empty($song)) {
         $result = [
+            'id'          => $song->id,
             'title'       => $song->title,
-            'description' => $song->description
+            'description' => $song->description,
+            'category_id' => $song->category_id,
+            'created_on'  => $song->created_on
         ];
 
         echo json_encode([
@@ -246,7 +258,7 @@ public function song_details()
             'status'  => true,
             'message' => 'Song details fetched successfully',
             'data'    => $result
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     } else {
         echo json_encode([
             'code'    => 404,
@@ -256,6 +268,7 @@ public function song_details()
         ]);
     }
 }
+
 
 
 

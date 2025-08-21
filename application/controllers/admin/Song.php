@@ -29,24 +29,21 @@ class Song extends CI_Controller
 public function fetch_songs()
 {
     $limit = 10;  
-    $page = $this->input->post('page');
+    $page = (int) $this->input->post('page');
     $search = $this->input->post('search');
     $offset = ($page > 1) ? ($page - 1) * $limit : 0;
 
     // ----- COUNT QUERY -----
     $this->db->from('songs');
-    $this->db->where('songs.isActive', 1);
     if (!empty($search)) {
         $this->db->like('songs.title', $search);
     }
     $total_rows = $this->db->count_all_results(); // run separately
 
     // ----- DATA QUERY WITH JOIN -----
-    $this->db->select('songs.*, categories.name AS category_name, subcategories.title AS subcategory_name');
+    $this->db->select('songs.id, songs.title, songs.isActive, categories.name AS category_name');
     $this->db->from('songs');
     $this->db->join('categories', 'categories.id = songs.category_id', 'left');
-    $this->db->join('subcategories', 'subcategories.id = songs.sub_category_id', 'left');
-    // $this->db->where('songs.isActive', 1);
     if (!empty($search)) {
         $this->db->like('songs.title', $search);
     }
@@ -76,6 +73,7 @@ public function fetch_songs()
         'offset' => $offset
     ]);
 }
+
 public function toggle_status()
     {
         if ($this->input->method() === 'post') {
@@ -112,43 +110,52 @@ public function toggle_status()
     }
 
 public function edit($id)
-    {
-        $category = $this->general_model->getOne('songs', ['id' => $id]);
-
-        if (!$category) {
-            show_404();
-        }
-
-        $data['song'] = $category;
-                $data['main_categories'] = $this->general_model->getAll('categories');
-
-        //    echo "<pre>";
-        //    print_r($data['song']);
-        //    die;
-        $this->load->view('admin/header');
-        $this->load->view('admin/edit_song__form', $data);
-        $this->load->view('admin/footer');
+{
+    $song = $this->general_model->getOne('songs', ['id' => $id]);
+    if (!$song) {
+        show_404();
     }
+
+    // Fetch main categories
+    $main_categories = $this->general_model->getAll('categories', ['parent_id' => 0]);
+
+    // Fetch subcategories of current song's main category (if any)
+    $sub_categories = [];
+    if (!empty($song->category_id)) {
+        $sub_categories = $this->general_model->getAll('categories', ['parent_id' => $song->category_id]);
+    }
+
+    $data = [
+        'song'            => $song,
+        'main_categories' => $main_categories,
+        'sub_categories'  => $sub_categories
+    ];
+
+    $this->load->view('admin/header');
+    $this->load->view('admin/edit_song_form', $data);
+    $this->load->view('admin/footer');
+}
+
 public function update_song()
 {
-    // Load required helpers
     $this->load->helper('security');
 
-    // Get POST data securely
     $id             = $this->input->post('id', true);
     $title          = $this->input->post('title', true);
     $category_id    = $this->input->post('category_id', true);
     $sub_category_id= $this->input->post('sub_category_id', true);
-    $description    = $this->input->post('description', false); // allow HTML (CKEditor)
+    $description    = $this->input->post('description', false); // allow HTML
 
-    // Basic validation
-    if (empty($id) || empty($title) || empty($category_id)  || empty($description)) {
-        echo json_encode([
-            'status'  => false,
-            'message' => 'All fields are required.'
-        ]);
-        return;
-    }
+    // // Validate required fields
+    // if (empty($id) || empty($title) || empty($category_id) || empty($description)) {
+    //     $this->output
+    //         ->set_content_type('application/json')
+    //         ->set_output(json_encode([
+    //             'status'  => false,
+    //             'message' => 'Song title, main category and description are required.'
+    //         ]));
+    //     return;
+    // }
 
     // Prepare update data
     $update_data = [
@@ -156,103 +163,118 @@ public function update_song()
         'category_id'     => $category_id,
         'sub_category_id' => $sub_category_id,
         'description'     => $description,
-        // 'updated_at'      => date('Y-m-d H:i:s')
+        'updated_at'      => date('Y-m-d H:i:s')
     ];
 
-    // Update using query builder
     $this->db->where('id', $id);
-    $updated = $this->db->update('songs', $update_data);
+    $this->db->update('songs', $update_data);
 
-    if ($updated) {
-        echo json_encode([
-            'status'  => true,
-            'message' => 'Song updated successfully.'
-        ]);
+    if ($this->db->affected_rows() > 0) {
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status'  => true,
+                'message' => 'Song updated successfully.'
+            ]));
     } else {
-        echo json_encode([
-            'status'  => false,
-            'message' => 'Failed to update song. Please try again.'
-        ]);
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status'  => false,
+                'message' => 'No changes detected or update failed.'
+            ]));
     }
 }
 
-    public function add_new_song(){
-        $data['main_categories'] = $this->general_model->getAll('categories');
-          $this->load->view('admin/header');
-        $this->load->view('admin/song_form',$data);
-        $this->load->view('admin/footer');
-    }
-    public function get_subcategories()
-{
-    // Read raw input (JSON)
+
+   public function add_new_song() {
+    $data['categories'] = $this->general_model->getAll('categories', ['parent_id' => NULL]); 
+    $this->load->view('admin/header');
+    $this->load->view('admin/song_form', $data);
+    $this->load->view('admin/footer');
+}
+
+   public function get_subcategories() {
     $raw_input = file_get_contents('php://input');
     $input_data = json_decode($raw_input, true);
+    $parent_id = isset($input_data['parent_id']) ? $input_data['parent_id'] : null;
 
-    $category_id = isset($input_data['category_id']) ? $input_data['category_id'] : null;
-
-    // If no category_id provided
-    if (empty($category_id)) {
-        echo json_encode([
-            'status'  => false,
-            'code'    => 400,
-            'message' => 'Category ID is required'
-        ]);
+    if (empty($parent_id)) {
+        echo json_encode(['status' => false, 'code' => 400, 'message' => 'Parent ID required']);
         return;
     }
 
-    // Fetch subcategories using your common general_model function
-    $conditions = ['main_category_id' => $category_id,'isActive'=>1];
-    $subcategories = $this->general_model->getAll('subcategories', $conditions);
+    $subcategories = $this->general_model->getAll('categories', ['parent_id' => $parent_id, 'isActive' => 1]);
 
     if (!empty($subcategories)) {
-        echo json_encode([
-            'status' => true,
-            'code'   => 200,
-            'data'   => $subcategories
-        ]);
+        echo json_encode(['status' => true, 'data' => $subcategories]);
     } else {
-        echo json_encode([
-            'status'  => false,
-            'code'    => 404,
-            'message' => 'No subcategories found'
-        ]);
+        echo json_encode(['status' => false, 'data' => []]);
     }
 }
-public function save_song()
-{
-    // $this->load->model('general_model');
 
-    // Prepare data from POST
-    $data = array(
-        'category_id'      => $this->input->post('main_category_id'),
-        'sub_category_id'  => $this->input->post('sub_category_id') ? $this->input->post('sub_category_id') : NULL,
-        'title'            => $this->input->post('song_name'),
-        'description'      => $this->input->post('song_lyrics', FALSE), // preserve HTML
-        'isActive'         => 1,
-        'created_on'       => date('Y-m-d')
-    );
 
-    // Insert into DB
+public function save_song() {
+    $song_name = trim($this->input->post('song_name'));
+    $categories = $this->input->post('category_id');
+
+    // Ensure categories is always an array
+    if (!is_array($categories)) {
+        $categories = [$categories];  // wrap single value in array
+    }
+
+    // Validation: song name required
+    if (empty($song_name)) {
+        echo json_encode(['status' => false, 'message' => 'Song name is required.']);
+        return;
+    }
+
+    // Validation: at least one category selected
+    if (empty($categories) || empty($categories[0])) {
+        echo json_encode(['status' => false, 'message' => 'Please select at least one category.']);
+        return;
+    }
+
+    // Get the last selected category (deepest level)
+    $final_category_id = end($categories);
+
+    // Validation: ensure category_id is valid (not empty)
+    if (empty($final_category_id)) {
+        echo json_encode(['status' => false, 'message' => 'Please select a valid category.']);
+        return;
+    }
+
+    // Prepare insert data
+    $data = [
+        'category_id' => $final_category_id,
+        'title'       => $song_name,
+        'description' => $this->input->post('song_lyrics', FALSE),
+        'isActive'    => 1,
+        'created_on'  => date('Y-m-d H:i:s')
+    ];
+
+    // Save to DB
     $insert_id = $this->general_model->insert('songs', $data);
 
-    if ($insert_id) {
-        $response = array(
+if ($insert_id) {
+    $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode([
             'status' => true,
             'message' => 'Song saved successfully!',
             'song_id' => $insert_id
-        );
-    } else {
-        $response = array(
+        ]));
+} else {
+    $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode([
             'status' => false,
-            'message' => 'Failed to save song. Please try again.'
-        );
-    }
-
-    // Return JSON response
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    exit;
+            'message' => 'Failed to save song.'
+        ]));
 }
+
+}
+
 
 
 }
