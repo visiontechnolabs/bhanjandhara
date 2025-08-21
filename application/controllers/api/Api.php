@@ -246,11 +246,9 @@ public function song_details()
 
     if (!empty($song)) {
         $result = [
-            'id'          => $song->id,
             'title'       => $song->title,
             'description' => $song->description,
-            'category_id' => $song->category_id,
-            'created_on'  => $song->created_on
+            
         ];
 
         echo json_encode([
