@@ -205,8 +205,8 @@ public function getSong()
             $result[] = [
                 'id'          => $song->id,
                 'title'       => $song->title,
-                'description' => $song->description,
-                'created_on'  => $song->created_on
+                // 'description' => $song->description,
+                // 'created_on'  => $song->created_on
             ];
         }
 
