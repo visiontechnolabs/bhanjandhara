@@ -6,7 +6,8 @@
             <div class="ps-3">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0 p-0">
-                        <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard'); ?>"><i class="bx bx-home-alt"></i></a></li>
+                        <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard'); ?>"><i
+                                    class="bx bx-home-alt"></i></a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit Song</li>
                     </ol>
                 </nav>
@@ -33,40 +34,25 @@
                                     <div class="invalid-feedback">Please enter the song title.</div>
                                 </div>
 
-                                <!-- Main Category Select -->
                                 <div class="mb-3">
-                                    <label for="mainCategory" class="form-label">Main Category</label>
-                                    <select name="category_id" class="form-select" id="mainCategory" required>
-                                        <option value="">-- Select Main Category --</option>
-                                        <?php foreach ($main_categories as $cat): ?>
-                                            <option value="<?= $cat->id; ?>" <?= ($song->category_id == $cat->id) ? 'selected' : ''; ?>>
-                                                <?= htmlspecialchars($cat->name, ENT_QUOTES); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <div class="invalid-feedback">Please select a main category.</div>
-                                </div>
-
-                                <!-- Sub Category Select (preloaded if available) -->
-                                <div class="mb-3">
-                                    <label for="subCategory" class="form-label">Sub Category</label>
-                                    <select name="sub_category_id" class="form-select" id="subCategory">
-                                        <option value="">-- Select Sub Category --</option>
-                                        <?php if (!empty($sub_categories)): ?>
-                                            <?php foreach ($sub_categories as $sub): ?>
-                                                <option value="<?= $sub->id; ?>" <?= ($song->sub_category_id == $sub->id) ? 'selected' : ''; ?>>
-                                                    <?= htmlspecialchars($sub->title, ENT_QUOTES); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                    <div class="invalid-feedback">Please select a sub category.</div>
-                                </div>
+    <label for="mainCategory" class="form-label">Select Category</label>
+    <div id="categoryContainer">
+        <select name="category_id[]" class="form-select category-select" data-level="1" required>
+            <option value="">-- Select Main Category --</option>
+            <?php foreach ($main_categories as $cat): ?>
+                <option value="<?= $cat->id; ?>" <?= ($song->category_id == $cat->id) ? 'selected' : ''; ?>>
+                    <?= htmlspecialchars($cat->name, ENT_QUOTES); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+</div>
 
                                 <!-- Song Description (CKEditor) -->
                                 <div class="mb-3">
                                     <label for="songDescription" class="form-label">Description</label>
-                                    <textarea name="description" id="songDescription" class="form-control" rows="6"><?= htmlspecialchars($song->description, ENT_QUOTES) ?></textarea>
+                                    <textarea name="description" id="songDescription" class="form-control"
+                                        rows="6"><?= htmlspecialchars($song->description, ENT_QUOTES) ?></textarea>
                                     <div class="invalid-feedback">Please enter the song description.</div>
                                 </div>
 
@@ -86,55 +72,66 @@
 <script src="<?= base_url('assets/js/jquery.min.js') ?>"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
-
 <script>
     var site_url = "<?= site_url(); ?>";
     CKEDITOR.replace('songDescription', { height: 250 });
 
-    // Fetch subcategories dynamically on main category change
-    document.getElementById('mainCategory').addEventListener('change', function () {
-        var mainCategoryId = this.value;
-        var subCategorySelect = document.getElementById('subCategory');
-        subCategorySelect.innerHTML = '<option value="">Loading...</option>';
+    var site_url = "<?= site_url(); ?>";
 
-        if (mainCategoryId) {
-            fetch(site_url + "admin/song/get_subcategories", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category_id: mainCategoryId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
-                if (data.status && data.data) {
-                    data.data.forEach(sub => {
-                        let option = document.createElement('option');
-                        option.value = sub.id;
-                        option.textContent = sub.title;
-                        subCategorySelect.appendChild(option);
-                    });
-                } else {
-                    subCategorySelect.innerHTML = '<option value="">No subcategories found</option>';
+function loadSubcategories(parentId, level) {
+    $.ajax({
+        url: site_url + "admin/song/get_subcategories",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ parent_id: parentId }),
+        dataType: "json",
+        success: function(response) {
+            // Remove all dropdowns deeper than current level
+            $('#categoryContainer select').each(function() {
+                if (parseInt($(this).attr('data-level')) > level) {
+                    $(this).parent().remove();
                 }
-            })
-            .catch(err => {
-                subCategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
-                console.error(err);
             });
-        } else {
-            subCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>';
+
+            // If subcategories exist, add a new dropdown
+            if (response.status && response.data.length > 0) {
+                let dropdown = '<div class="mt-3">' +
+                               '<select name="category_id[]" class="form-select category-select" data-level="' + (level+1) + '">' +
+                               '<option value="">-- Select Sub Category --</option>';
+                response.data.forEach(function(sub) {
+                    dropdown += '<option value="'+ sub.id +'">'+ sub.name +'</option>';
+                });
+                dropdown += '</select></div>';
+
+                $('#categoryContainer').append(dropdown);
+            }
+        },
+        error: function() {
+            console.error('Failed to fetch subcategories');
         }
     });
+}
 
-    // Submit form with AJAX
+// Handle change event for any category dropdown (even dynamically added)
+$(document).on('change', '.category-select', function() {
+    var parentId = $(this).val();
+    var level = parseInt($(this).attr('data-level'));
+    if (parentId) {
+        loadSubcategories(parentId, level);
+    } else {
+        // If blank selected, remove deeper dropdowns
+        $('#categoryContainer select').each(function() {
+            if (parseInt($(this).attr('data-level')) > level) {
+                $(this).parent().remove();
+            }
+        });
+    }
+});
     $("#editSongForm").on("submit", function (e) {
         e.preventDefault();
-
-        // Ensure CKEditor data is pushed into textarea
         for (var instance in CKEDITOR.instances) {
             CKEDITOR.instances[instance].updateElement();
         }
-
         var formData = new FormData(this);
 
         $.ajax({
@@ -146,21 +143,10 @@
             dataType: "json",
             success: function (response) {
                 if (response.status) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Updated",
-                        text: response.message,
-                        timer: 2000,
-                        showConfirmButton: false,
-                    }).then(() => {
-                        window.location.href = site_url + "songs";
-                    });
+                    Swal.fire({ icon: "success", title: "Updated", text: response.message, timer: 2000, showConfirmButton: false })
+                        .then(() => { window.location.href = site_url + "songs"; });
                 } else {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: response.message,
-                    });
+                    Swal.fire({ icon: "error", title: "Error", text: response.message });
                 }
             },
             error: function () {

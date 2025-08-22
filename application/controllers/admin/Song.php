@@ -31,14 +31,15 @@ public function fetch_songs()
     $limit = 10;  
     $page = (int) $this->input->post('page');
     $search = $this->input->post('search');
-    $offset = ($page > 1) ? ($page - 1) * $limit : 0;
+    if ($page < 1) $page = 1;
+    $offset = ($page - 1) * $limit;
 
     // ----- COUNT QUERY -----
     $this->db->from('songs');
     if (!empty($search)) {
         $this->db->like('songs.title', $search);
     }
-    $total_rows = $this->db->count_all_results(); // run separately
+    $total_rows = $this->db->count_all_results();
 
     // ----- DATA QUERY WITH JOIN -----
     $this->db->select('songs.id, songs.title, songs.isActive, categories.name AS category_name');
@@ -53,18 +54,36 @@ public function fetch_songs()
 
     // ----- PAGINATION -----
     $total_pages = ceil($total_rows / $limit);
-    $start_page = max(1, $page - 1);
-    $end_page = min($total_pages, $start_page + 2); // Show only 3 pages max
 
     $pagination = '';
+
+    // Prev button
+    $prev_disabled = ($page <= 1) ? 'disabled' : '';
+    $prev_page = ($page > 1) ? $page - 1 : 1;
+    $pagination .= "<li class='page-item $prev_disabled'>
+                        <a href='javascript:void(0)' class='page-link' data-page='$prev_page'>Prev</a>
+                    </li>";
+
+    // Determine page range (only 3 pages)
+    $start_page = max(1, $page - 1);
+    $end_page = min($total_pages, $start_page + 2);
+    if ($end_page - $start_page < 2) {
+        $start_page = max(1, $end_page - 2);
+    }
+
     for ($i = $start_page; $i <= $end_page; $i++) {
         $active = ($i == $page) ? 'active' : '';
-        $pagination .= "<li class='page-item $active'><a href='javascript:void(0)' class='page-link' data-page='$i'>$i</a></li>";
+        $pagination .= "<li class='page-item $active'>
+                            <a href='javascript:void(0)' class='page-link' data-page='$i'>$i</a>
+                        </li>";
     }
-    if ($end_page < $total_pages) {
-        $next_page = $end_page + 1;
-        $pagination .= "<li class='page-item'><a href='javascript:void(0)' class='page-link' data-page='$next_page'>Next</a></li>";
-    }
+
+    // Next button
+    $next_disabled = ($page >= $total_pages) ? 'disabled' : '';
+    $next_page = ($page < $total_pages) ? $page + 1 : $total_pages;
+    $pagination .= "<li class='page-item $next_disabled'>
+                        <a href='javascript:void(0)' class='page-link' data-page='$next_page'>Next</a>
+                    </li>";
 
     echo json_encode([
         'songs' => $songs,
@@ -73,6 +92,7 @@ public function fetch_songs()
         'offset' => $offset
     ]);
 }
+
 
 public function toggle_status()
     {
@@ -111,59 +131,61 @@ public function toggle_status()
 
 public function edit($id)
 {
-    $song = $this->general_model->getOne('songs', ['id' => $id]);
-    if (!$song) {
-        show_404();
-    }
+    $song = $this->general_model->getOne('songs', ['id' => (int)$id]);
+    if (!$song) { show_404(); }
 
-    // Fetch main categories
-    $main_categories = $this->general_model->getAll('categories', ['parent_id' => 0]);
+    // main categories (active)
+    $main_categories = $this->general_model->getAll('categories', [ 'isActive' => 1,'parent_id'=>null]);
 
-    // Fetch subcategories of current song's main category (if any)
-    $sub_categories = [];
-    if (!empty($song->category_id)) {
-        $sub_categories = $this->general_model->getAll('categories', ['parent_id' => $song->category_id]);
-    }
 
     $data = [
         'song'            => $song,
         'main_categories' => $main_categories,
-        'sub_categories'  => $sub_categories
     ];
-
+//     echo "<pre>";
+// print_r($data);
+// die;
     $this->load->view('admin/header');
     $this->load->view('admin/edit_song_form', $data);
     $this->load->view('admin/footer');
 }
 
+
 public function update_song()
 {
     $this->load->helper('security');
 
-    $id             = $this->input->post('id', true);
-    $title          = $this->input->post('title', true);
-    $category_id    = $this->input->post('category_id', true);
-    $sub_category_id= $this->input->post('sub_category_id', true);
-    $description    = $this->input->post('description', false); // allow HTML
+    $id          = $this->input->post('id', true);
+    $title       = $this->input->post('title', true);
+    $description = $this->input->post('description', false); 
+    $category_ids = $this->input->post('category_id');
 
-    // // Validate required fields
-    // if (empty($id) || empty($title) || empty($category_id) || empty($description)) {
-    //     $this->output
-    //         ->set_content_type('application/json')
-    //         ->set_output(json_encode([
-    //             'status'  => false,
-    //             'message' => 'Song title, main category and description are required.'
-    //         ]));
-    //     return;
-    // }
+    $final_category_id = null;
+    if (is_array($category_ids)) {
+        foreach ($category_ids as $catId) {
+            if (!empty($catId)) {
+                $final_category_id = (int)$catId;
+            }
+        }
+    }
+
+    // Validate required fields
+    if (empty($id) || empty($title) || empty($final_category_id) || empty($description)) {
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status'  => false,
+                'message' => 'Song title, category, and description are required.'
+            ]));
+        return;
+    }
 
     // Prepare update data
     $update_data = [
-        'title'           => $title,
-        'category_id'     => $category_id,
-        'sub_category_id' => $sub_category_id,
-        'description'     => $description,
-        'updated_at'      => date('Y-m-d H:i:s')
+        'title'       => $title,
+        'category_id' => $final_category_id,
+        'description' => $description,
+        'created_on'  => date('Y-m-d H:i:s')
     ];
 
     $this->db->where('id', $id);
@@ -187,6 +209,7 @@ public function update_song()
 }
 
 
+
    public function add_new_song() {
     $data['categories'] = $this->general_model->getAll('categories', ['parent_id' => NULL]); 
     $this->load->view('admin/header');
@@ -194,17 +217,20 @@ public function update_song()
     $this->load->view('admin/footer');
 }
 
-   public function get_subcategories() {
+  public function get_subcategories() {
     $raw_input = file_get_contents('php://input');
     $input_data = json_decode($raw_input, true);
-    $parent_id = isset($input_data['parent_id']) ? $input_data['parent_id'] : null;
+    $parent_id = isset($input_data['parent_id']) ? (int)$input_data['parent_id'] : 0;
 
-    if (empty($parent_id)) {
-        echo json_encode(['status' => false, 'code' => 400, 'message' => 'Parent ID required']);
+    if (!$parent_id) {
+        echo json_encode(['status' => false, 'data' => []]);
         return;
     }
 
-    $subcategories = $this->general_model->getAll('categories', ['parent_id' => $parent_id, 'isActive' => 1]);
+    $subcategories = $this->general_model->getAll('categories', [
+        'parent_id' => $parent_id,
+        'isActive' => 1
+    ]);
 
     if (!empty($subcategories)) {
         echo json_encode(['status' => true, 'data' => $subcategories]);
@@ -212,7 +238,6 @@ public function update_song()
         echo json_encode(['status' => false, 'data' => []]);
     }
 }
-
 
 public function save_song() {
     $song_name = trim($this->input->post('song_name'));
